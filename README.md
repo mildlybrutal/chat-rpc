@@ -2,7 +2,6 @@
 
 A real-time chat application built with Go's native RPC package, demonstrating distributed systems concepts with concurrent client-server architecture.
 
-![Demo Screenshot](./images/demo.png)
 
 ## Overview
 
