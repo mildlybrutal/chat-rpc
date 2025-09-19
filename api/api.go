@@ -19,5 +19,5 @@ type GetArgs struct {
 
 type ChatService interface {
 	SendMessage(args *SendArgs, reply *bool) error
-	RecieveMessage(args *GetArgs, reply *[]Message) error
+	ReceiveMessage(args *GetArgs, reply *[]Message) error
 }

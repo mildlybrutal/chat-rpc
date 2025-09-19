@@ -36,7 +36,7 @@ func (c *ChatServer) SendMessage(args *api.SendArgs, reply *bool) error {
 }
 
 // RPC method to retrieve new messages from the chat history.
-func (c *ChatServer) RecieveMessage(args *api.GetArgs, reply *[]api.Message) error {
+func (c *ChatServer) ReceiveMessage(args *api.GetArgs, reply *[]api.Message) error {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -61,7 +61,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	fmt.Print("Server listening on port 8080")
+	fmt.Println("Server listening on port 8080")
 
 	for {
 		conn, err := listener.Accept()

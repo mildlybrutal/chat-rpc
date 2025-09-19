@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/rpc"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/chat-rpc/api"
@@ -13,7 +14,7 @@ import (
 func main() {
 	fmt.Print("Enter your username: ")
 	username, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-	username = username[:len(username)-1]
+	username = strings.TrimSpace(username)
 
 	client, err := rpc.Dial("tcp", "localhost:8080")
 
@@ -29,7 +30,7 @@ func main() {
 		for {
 			args := &api.GetArgs{FromIndex: lastIndex}
 			var newMessages []api.Message
-			err = client.Call("ChatServer.RecieveMessage", args, &newMessages)
+			err = client.Call("ChatServer.ReceiveMessage ", args, &newMessages)
 			if err != nil {
 				fmt.Println("Error recieving messages: ", err)
 			} else {
