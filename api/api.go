@@ -3,13 +3,13 @@ package api
 import "time"
 
 type Message struct {
-	UserName  string
+	Username  string
 	Text      string
 	Timestamp time.Time
 }
 
 type SendArgs struct {
-	UserName string
+	Username string
 	Text     string
 }
 
@@ -19,5 +19,5 @@ type GetArgs struct {
 
 type ChatService interface {
 	SendMessage(args *SendArgs, reply *bool) error
-	RecieveMessage(args *GetArgs, reply *bool) error
+	RecieveMessage(args *GetArgs, reply *[]Message) error
 }
