@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+	"slices"
 	"sync"
 	"time"
 
@@ -13,8 +14,11 @@ import (
 
 // main rpc service
 type ChatServer struct {
-	messages []api.Message
-	mu       sync.Mutex
+	messages  []api.Message
+	rooms     map[string][]api.Message
+	userRooms map[string][]string // room which user is in
+	roomUsers map[string][]string //which users are in room
+	mu        sync.Mutex
 }
 
 // RPC method to receive and store a new chat message.
@@ -49,8 +53,76 @@ func (c *ChatServer) ReceiveMessage(args *api.GetArgs, reply *[]api.Message) err
 	return nil
 }
 
+func (c *ChatServer) ListRooms(args *struct{}, reply *api.ListRoomsReply) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	rooms := make([]api.RoomInfo, 0, len(c.rooms))
+
+	for name := range c.rooms {
+		rooms = append(rooms, api.RoomInfo{RoomName: name})
+	}
+
+	reply.Rooms = rooms
+
+	return nil
+}
+
+func (c *ChatServer) JoinRoom(args *api.RoomInfo, reply *api.JoinRoomReply) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	//initializes room if not exists in first place
+	if _, roomExists := c.rooms[args.RoomName]; !roomExists {
+		c.rooms[args.RoomName] = make([]api.Message, 0)
+		c.roomUsers[args.RoomName] = make([]string, 0)
+	}
+
+	//prevents duplicateds , checks if user is already in room
+	if slices.Contains(c.roomUsers[args.RoomName], args.Username) {
+		return nil // Already in room
+	}
+
+	//bi-directional
+	//add user to room
+	c.roomUsers[args.RoomName] = append(c.roomUsers[args.RoomName], args.Username)
+	//add room to user's list
+	c.userRooms[args.Username] = append(c.userRooms[args.Username], args.RoomName)
+
+	*reply = api.JoinRoomReply{
+		Success:   true,
+		Message:   fmt.Sprintf("joined room %s", args.RoomName),
+		UserCount: len(c.roomUsers[args.RoomName]),
+	}
+	//fmt.Printf("User %s joined room %s", args.Username, args.RoomName)
+	return nil
+}
+
+func (c *ChatServer) LeaveRoom(args *api.RoomInfo, reply *api.LeaveRoomReply) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// removes user from room
+	c.roomUsers[args.RoomName] = slices.DeleteFunc(c.roomUsers[args.RoomName],
+		func(user string) bool { return user == args.Username })
+	// remove room from user
+	c.userRooms[args.Username] = slices.DeleteFunc(c.userRooms[args.Username],
+		func(room string) bool { return room == args.RoomName })
+
+	*reply = api.LeaveRoomReply{
+		Success:        true,
+		Message:        fmt.Sprintf("Left room %s", args.RoomName),
+		RemainingUsers: len(c.roomUsers[args.RoomName]),
+	}
+	return nil
+}
+
 func main() {
-	chat := new(ChatServer)
+	chat := &ChatServer{
+		rooms:     make(map[string][]api.Message),
+		userRooms: make(map[string][]string),
+		roomUsers: make(map[string][]string),
+	}
 	rpc.Register(chat)
 
 	listener, err := net.Listen("tcp", ":8080")
