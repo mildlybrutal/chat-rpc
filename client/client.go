@@ -24,7 +24,8 @@ func main() {
 	username, _ = reader.ReadString('\n')
 	username = strings.TrimSpace(username)
 
-	client, err := rpc.Dial("tcp", "localhost:8080")
+	var err error
+	client, err = rpc.Dial("tcp", "localhost:8080")
 
 	if err != nil {
 		fmt.Println("Error connecting: ", err)
@@ -68,7 +69,7 @@ func messageReceiver() {
 		}
 
 		var newMessages []api.Message
-		err := client.Call("ChatServer.ReceiveMessage ", args, &newMessages)
+		err := client.Call("ChatServer.ReceiveMessage", args, &newMessages)
 
 		if err != nil {
 			fmt.Println("Error recieving messages: ", err)
@@ -147,7 +148,7 @@ func joinRoom(roomName string) {
 
 	if reply.Success {
 		oldRoom := currentRoom
-		currentRoom := roomName
+		currentRoom = roomName
 
 		if _, exists := roomLastIndex[currentRoom]; !exists {
 			roomLastIndex[currentRoom] = 0

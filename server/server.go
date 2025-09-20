@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/rpc"
 	"slices"
@@ -14,7 +13,6 @@ import (
 
 // main rpc service
 type ChatServer struct {
-	messages  []api.Message
 	rooms     map[string][]api.Message
 	userRooms map[string][]string // room which user is in
 	roomUsers map[string][]string //which users are in room
@@ -30,11 +28,16 @@ func (c *ChatServer) SendMessage(args *api.SendArgs, reply *bool) error {
 	newMessage := api.Message{
 		Username:  args.Username,
 		Text:      args.Text,
+		RoomName:  args.RoomName,
 		Timestamp: time.Now(),
 	}
 
-	c.messages = append(c.messages, newMessage)
-	log.Printf("Received message from %s: %s\n", args.Username, args.Text)
+	if _, exists := c.rooms[args.RoomName]; !exists {
+		c.rooms[args.RoomName] = make([]api.Message, 0)
+	}
+
+	c.rooms[args.RoomName] = append(c.rooms[args.RoomName], newMessage)
+	fmt.Printf("Received message from %s in room %s: %s\n", args.Username, args.RoomName, args.Text)
 	*reply = true
 	return nil
 }
@@ -45,11 +48,14 @@ func (c *ChatServer) ReceiveMessage(args *api.GetArgs, reply *[]api.Message) err
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if args.FromIndex < 0 || args.FromIndex > len(c.messages) {
+	roomMessages := c.rooms[args.RoomName]
+
+	if args.FromIndex < 0 || args.FromIndex > len(roomMessages) {
+		*reply = []api.Message{}
 		return nil
 	}
 
-	*reply = c.messages[args.FromIndex:]
+	*reply = roomMessages[args.FromIndex:]
 	return nil
 }
 
